@@ -129,34 +129,50 @@ $ptrn = $cfg['bak-file-pattern'];
 # set newest as future timestamp.
 $newest = $now_time + 14400;
 if ( $cfg['data-source'] == 'log'  ) {
-	foreach ($loglist as &$fname) {
-		if (count(ftp_nlist($ftp_conn, $fname)) == 1) {
+	
+	# Log record extraction pattern. Using Regex syntax.
+	# Here we are trying to find the specific entry that fits the standard log record for successful STOR operation. 
+	# Example:
+	# (000051) 01.09.2022 2:22:55 - ftp_user (10.0.1.2)> 226 Successfully transferred "/path/to/file/filename_pattern_2022_09_01_010000_6539791.bak"
+
+        $pattern = '/\(\d{5,7}\) (.+?) - (.+?) \((.+?)\)\> 226 Successfully transferred \"(.+?)'.$cfg['bak-file-pattern'].'(.+?)\"/';
+
+        foreach ($loglist as &$fname) {
+                if (count(ftp_nlist($ftp_conn, $fname)) == 1) {
 			# Filename date extraction pattern.
 			# here we define log filename pattern, e.g. ./fzs-2022-09-01.log
 			# date in the log filename is used to list and filter logfile by its age 
 			# Note that file attributes are ignored. Using Regex syntax.
-			# 
-			$date_pattern = '/(\d{4}-\d{2}-\d{2})/';
-			preg_match_all($date_pattern, $fname, $res, PREG_PATTERN_ORDER);
-			$file_time = strtotime($res[1][0]);
-			$days_diff = round(($now_time - $file_time) / 86400);
 			
-			$nameparts = explode(".", $fname);
+                        $date_pattern = '/(\d{4}-\d{2}-\d{2})/';                # Example: ./fzs-2022-09-01.log
+                        preg_match_all($date_pattern, $fname, $res, PREG_PATTERN_ORDER);
+                        $file_time = strtotime($res[1][0]);
+                        $days_diff = round(($now_time - $file_time) / 86400);
+
+                        $nameparts = explode(".", $fname);
                         $extension = $nameparts[ count($nameparts) - 1 ];
 
                         if ($days_diff < $cfg['logfile-age'] && $extension == 'log' ) {
-				$logid = fopen('php://temp', 'r+');
-				ftp_fget($ftp_conn, $logid, $fname, FTP_BINARY, 0);
-				$fstats = fstat($logid);
-				fseek($logid, 0);
-				if ($fstats['size'] > 0) {
-					$logtext = fread($logid, $fstats['size']);
-				}
-				fclose($logid);
-				$full_log = $full_log."/n".$logtext;
-			}
-		}
-	}
+                                $logid = fopen('php://temp', 'r+');
+                                ftp_fget($ftp_conn, $logid, $fname, FTP_BINARY, 0);
+                                $fstats = fstat($logid);
+                                fseek($logid, 0);
+                                if ($fstats['size'] > 0) {
+                                        $logtext = fread($logid, $fstats['size']);
+                                }
+                                fclose($logid);
+
+                                $loglines = explode("\r\n", $logtext);
+                                foreach ($loglines as &$logentry) {
+                                        if (preg_match($pattern, $logentry)) {
+                                                $full_log = $logentry."\r\n".$full_log;
+                                        }
+                                }
+                        }
+                }
+        }
+
+	
 	ftp_close($ftp_conn);
 	
 	# Throw error if log contents is shorter than min-log-entry.
@@ -164,14 +180,10 @@ if ( $cfg['data-source'] == 'log'  ) {
 		echo "Log file is too short.";
 		exit(STATUS_UNKNOWN);
 	}
-	# Log record extraction pattern.
-	# Here we are trying to find the specific entry that fits the standard log record for successful STOR operation. 
-	# Example:
-	# (000051) 01.09.2022 2:22:55 - ftp_user (10.0.1.2)> 226 Successfully transferred "/path/to/file/filename_pattern_2022_09_01_010000_6539791.bak"
-	# Note that line endings (\r and \n) should always be added for the lazy search to work properly. Using Regex syntax.
 
-	$pattern = '/\(\d{5,7}\) (.+?) - (.+?) \((.+?)\)\> 226 Successfully transferred \"(.+?)'.$cfg['bak-file-pattern'].'(.+?)\"\r\n/';
-	preg_match_all($pattern, $full_log, $lines, PREG_PATTERN_ORDER);
+	# Note that line endings (\r and \n) should always be added for the lazy search to work properly. 
+	# $pattern = '/\(\d{5,7}\) (.+?) - (.+?) \((.+?)\)\> 226 Successfully transferred \"(.+?)'.$cfg['bak-file-pattern'].'(.+?)\"\r\n/';
+	preg_match_all($pattern."\r\n", $full_log, $lines, PREG_PATTERN_ORDER);
 	$logdates = $lines[1];
 
 	foreach ($logdates as &$datetime) {
