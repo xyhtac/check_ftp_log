@@ -134,8 +134,11 @@ if ( $cfg['data-source'] == 'log'  ) {
 	# Here we are trying to find the specific entry that fits the standard log record for successful STOR operation. 
 	# Example:
 	# (000051) 01.09.2022 2:22:55 - ftp_user (10.0.1.2)> 226 Successfully transferred "/path/to/file/filename_pattern_2022_09_01_010000_6539791.bak"
+	# Note that line endings (\r and \n) should always be added for the lazy search to work properly. 
 
-        $pattern = '/\(\d{5,7}\) (.+?) - (.+?) \((.+?)\)\> 226 Successfully transferred \"(.+?)'.$cfg['bak-file-pattern'].'(.+?)\"/';
+        $pattern = '\(\d{5,7}\) (.+?) - (.+?) \((.+?)\)\> 226 Successfully transferred \"(.+?)'.$cfg['bak-file-pattern'].'(.+?)\"';
+        $regex_filter ="/".$pattern."/";
+        $regex_matcher ="/".$pattern."\r\n/";
 
         foreach ($loglist as &$fname) {
                 if (count(ftp_nlist($ftp_conn, $fname)) == 1) {
@@ -164,7 +167,7 @@ if ( $cfg['data-source'] == 'log'  ) {
 
                                 $loglines = explode("\r\n", $logtext);
                                 foreach ($loglines as &$logentry) {
-                                        if (preg_match($pattern, $logentry)) {
+                                        if (preg_match($regex_filter, $logentry)) {
                                                 $full_log = $logentry."\r\n".$full_log;
                                         }
                                 }
@@ -181,9 +184,9 @@ if ( $cfg['data-source'] == 'log'  ) {
 		exit(STATUS_UNKNOWN);
 	}
 
-	# Note that line endings (\r and \n) should always be added for the lazy search to work properly. 
 	# $pattern = '/\(\d{5,7}\) (.+?) - (.+?) \((.+?)\)\> 226 Successfully transferred \"(.+?)'.$cfg['bak-file-pattern'].'(.+?)\"\r\n/';
-	preg_match_all($pattern."\r\n", $full_log, $lines, PREG_PATTERN_ORDER);
+	
+	preg_match_all($regex_matcher, $full_log, $lines, PREG_PATTERN_ORDER);
 	$logdates = $lines[1];
 
 	foreach ($logdates as &$datetime) {
