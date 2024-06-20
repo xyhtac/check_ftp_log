@@ -140,7 +140,11 @@ if ( $cfg['data-source'] == 'log'  ) {
 			preg_match_all($date_pattern, $fname, $res, PREG_PATTERN_ORDER);
 			$file_time = strtotime($res[1][0]);
 			$days_diff = round(($now_time - $file_time) / 86400);
-			if ($days_diff < $cfg['logfile-age']) { 
+			
+			$nameparts = explode(".", $fname);
+                        $extension = $nameparts[ count($nameparts) - 1 ];
+
+                        if ($days_diff < $cfg['logfile-age'] && $extension == 'log' ) {
 				$logid = fopen('php://temp', 'r+');
 				ftp_fget($ftp_conn, $logid, $fname, FTP_BINARY, 0);
 				$fstats = fstat($logid);
