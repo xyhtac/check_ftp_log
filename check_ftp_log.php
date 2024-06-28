@@ -70,6 +70,9 @@ $cfg['min-log-entry'] = 120;					# minimal size of logfile entry in bytes.
 $cfg['data-source'] = 'log';					# script may get data either from text 'log' or from 'filename'
 $cfg['filename-pattern-ok'] = "OK";				# Successfull backup flag for filename mode
 $cfg['filename-pattern-warn'] = "WARN";				# Warning flag for filename mode
+$cfg['cache'] = "/tmp";
+$cfg['cache-lifetime'] = 700000;
+$cfg['cache-expected-size'] = 100;
 
 # initial variables
 define( "STATUS_OK", 0 );
@@ -141,38 +144,73 @@ if ( $cfg['data-source'] == 'log'  ) {
         $regex_matcher ="/".$pattern."\r\n/";
 
         foreach ($loglist as &$fname) {
-                if (count(ftp_nlist($ftp_conn, $fname)) == 1) {
-			# Filename date extraction pattern.
-			# here we define log filename pattern, e.g. ./fzs-2022-09-01.log
-			# date in the log filename is used to list and filter logfile by its age 
-			# Note that file attributes are ignored. Using Regex syntax.
+               # echo "trying $fname\n";
+		$loglines = array( "" );
+		
+		# skip non-log filenames
+		$nameparts = explode(".", $fname);
+		$extension = $nameparts[ count($nameparts) - 1 ];
+		if ($extension != 'log') {
+			continue;
+		} 
+		
+		# Filename date extraction pattern.
+		# here we define log filename pattern, e.g. ./fzs-2022-09-01.log
+		# date in the log filename is used to list and filter logfile by its age 
+		# Note that file attributes are ignored. Using Regex syntax.
+		
+		$date_pattern = '/(\d{4}-\d{2}-\d{2})/';		# Example: ./fzs-2022-09-01.log
+		preg_match_all($date_pattern, $fname, $res, PREG_PATTERN_ORDER);
+		if ($res[1][0]) {
+			$file_time = strtotime($res[1][0]);
+			$days_diff = round(($now_time - $file_time) / 86400);
+		} else {
+			$days_diff = 0;
+		}
+
+		# compose cache path
+		$pathparts = explode("/", $fname);
+		$pathfilename = $pathparts[ count($pathparts) - 1 ];
+		$cachedLogFilename = $cfg['cache']."/".$pathfilename;
+		
+		# use cache if we like it
+		if ( $days_diff > 0 && file_exists($cachedLogFilename) && time() - filemtime($cachedLogFilename) < $cfg['cache-lifetime'] && filesize($cachedLogFilename) > $cfg['cache-expected-size']) {
+			$loglines = explode("\r\n", file_get_contents($cachedLogFilename));
+			# echo "Using cache for $fname\n";
 			
-                        $date_pattern = '/(\d{4}-\d{2}-\d{2})/';                # Example: ./fzs-2022-09-01.log
-                        preg_match_all($date_pattern, $fname, $res, PREG_PATTERN_ORDER);
-                        $file_time = strtotime($res[1][0]);
-                        $days_diff = round(($now_time - $file_time) / 86400);
+		} else {
+			# echo "No-cache for $fname\n";
+			if (count(ftp_nlist($ftp_conn, $fname)) == 1) {
+				if ($days_diff < $cfg['logfile-age'] ) { 
+					$logid = fopen('php://temp', 'r+');
+					# echo "Trying to open $fname\n";
+					ftp_fget($ftp_conn, $logid, $fname, FTP_BINARY, 0);
+					$fstats = fstat($logid);
+					fseek($logid, 0);
+					if ($fstats['size'] > 0) {
+						$logtext = fread($logid, $fstats['size']);
+					}
+					fclose($logid);
 
-                        $nameparts = explode(".", $fname);
-                        $extension = $nameparts[ count($nameparts) - 1 ];
-
-                        if ($days_diff < $cfg['logfile-age'] && $extension == 'log' ) {
-                                $logid = fopen('php://temp', 'r+');
-                                ftp_fget($ftp_conn, $logid, $fname, FTP_BINARY, 0);
-                                $fstats = fstat($logid);
-                                fseek($logid, 0);
-                                if ($fstats['size'] > 0) {
-                                        $logtext = fread($logid, $fstats['size']);
-                                }
-                                fclose($logid);
-
-                                $loglines = explode("\r\n", $logtext);
-                                foreach ($loglines as &$logentry) {
-                                        if (preg_match($regex_filter, $logentry)) {
-                                                $full_log = $logentry."\r\n".$full_log;
-                                        }
-                                }
-                        }
-                }
+					$loglines = explode("\r\n", $logtext);				
+					
+					# write cache if there's no such file or today
+					if ( ( !file_exists($cachedLogFilename) || $days_diff == 0 ) && $logtext ) {
+						# echo "Saving cache for $cachedLogFilename\n";
+						file_put_contents( $cachedLogFilename, $logtext );
+					}
+					
+					# $full_log = $full_log."/n".$logtext;
+				}
+			}
+		}
+		
+		foreach ($loglines as &$logentry) {
+			if (preg_match($regex_filter, $logentry)) {
+				# echo "adding line to log: \n $logentry \n";
+				$full_log = $logentry."\r\n".$full_log;
+			}
+		}
         }
 
 	
