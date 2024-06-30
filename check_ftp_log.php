@@ -174,7 +174,7 @@ if ( $cfg['data-source'] == 'log'  ) {
 		$cachedLogFilename = $cfg['cache']."/".$pathfilename;
 		
 		# use cache if we like it
-		if ( $days_diff > 0 && file_exists($cachedLogFilename) && time() - filemtime($cachedLogFilename) < $cfg['cache-lifetime'] && filesize($cachedLogFilename) > $cfg['cache-expected-size']) {
+		if ( $days_diff > 1 && file_exists($cachedLogFilename) && time() - filemtime($cachedLogFilename) < $cfg['cache-lifetime'] && filesize($cachedLogFilename) > $cfg['cache-expected-size']) {
 			$loglines = explode("\r\n", file_get_contents($cachedLogFilename));
 			# echo "Using cache for $fname\n";
 			
@@ -195,7 +195,7 @@ if ( $cfg['data-source'] == 'log'  ) {
 					$loglines = explode("\r\n", $logtext);				
 					
 					# write cache if there's no such file or today
-					if ( ( !file_exists($cachedLogFilename) || $days_diff == 0 ) && $logtext ) {
+					if ( ( !file_exists($cachedLogFilename) || $days_diff <= 1 ) && $logtext ) {
 						# echo "Saving cache for $cachedLogFilename\n";
 						file_put_contents( $cachedLogFilename, $logtext );
 					}
