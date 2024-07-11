@@ -236,16 +236,17 @@ if ( $cfg['data-source'] == 'log'  ) {
 				$newest = $backup_age;
 				$ftpuser = $lines[2][$n];
 				$filename = $cfg['bak-file-pattern'].$lines[5][$n];
+				$newesttime = $datetime;
 			} 
 
 			$n++;
 	}
 
 	if ($newest <= $threshold && $filename) {
-		echo "Last backup: $newest hours ago ($datetime)\nSuccessfull STOR: $filename by user $ftpuser\n";
+		echo "Last backup: $newest hours ago ($newesttime)\nSuccessfull STOR: $filename by user $ftpuser\n";
 		exit(STATUS_OK);
 	} elseif ($newest > $threshold && $filename) {
-		echo "Backup expired: newest $newest hours ago ($datetime). Expected $threshold hours. \nSuccessfull STOR: $filename by user $ftpuser.\n";
+		echo "Backup expired: newest $newest hours ago ($newesttime). Expected $threshold hours. \nSuccessfull STOR: $filename by user $ftpuser.\n";
 		exit(STATUS_WARNING);
 	} elseif (!$filename) {
 		echo "No relevant backup found for pattern $ptrn\n";
