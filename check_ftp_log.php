@@ -30,6 +30,7 @@
 #	check_command = "check_ftp_log"
 #	vars.ftp_host = "10.0.0.1"
 #	vars.ftp_port = "21"
+#	vars.ftp_ssl = "0"
 #	vars.ftp_username = "username"
 #	vars.ftp_password = "secret_password"
 #	vars.logfile_age = "14"
@@ -48,6 +49,7 @@
 #	arguments = {
 #		"--ftp-host" = "$ftp_host$"
 #		"--ftp-port" = "$ftp_port$"
+#		"--ftp-ssl" = "$ftp_ssl$"
 #		"--ftp-username" = "$ftp_username$"
 #		"--ftp-password" = "$ftp_password$"
 #		"--log-age" = "$log_age$"
@@ -64,6 +66,7 @@
 # default values for externally definable parameters 
 $cfg['ftp-host'] = "10.0.0.1";					# storage ftp hostname.
 $cfg['ftp-port'] = "21";					# storage ftp port.
+$cfg['ftp-ssl'] = "0";						# storage ftp ssl mode.
 $cfg['ftp-path'] = "";						# location of logfiles on the storage ftp
 $cfg['ftp-username'] = "username";				# login for storage ftp.
 $cfg['ftp-password'] = "secret_password";			# password for storage ftp.
@@ -110,7 +113,11 @@ if (!$cfg['bak-file-pattern']) {
 }
 
 # open ftp connection
-$ftp_conn = ftp_connect($cfg['ftp-host'], $cfg['ftp-port']);
+if ($cfg['ftp-ssl'] == "1") {
+	$ftp_conn = ftp_ssl_connect($cfg['ftp-host'], $cfg['ftp-port']);
+} else {
+	$ftp_conn = ftp_connect($cfg['ftp-host'], $cfg['ftp-port']);
+}
 $login_result = ftp_login($ftp_conn, $cfg['ftp-username'], $cfg['ftp-password']);
 
 # Throw error if there is a problem with ftp connection.
