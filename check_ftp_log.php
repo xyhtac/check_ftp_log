@@ -115,6 +115,7 @@ if (!$cfg['bak-file-pattern']) {
 # open ftp connection
 if ($cfg['ftp-ssl'] == '1') {
 	$ftp_conn = ftp_ssl_connect($cfg['ftp-host'], $cfg['ftp-port']);
+	ftp_set_option($ftp_conn, FTP_USEPASVADDRESS, false);
 } else {
 	$ftp_conn = ftp_connect($cfg['ftp-host'], $cfg['ftp-port']);
 }
