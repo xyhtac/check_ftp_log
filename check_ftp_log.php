@@ -271,15 +271,12 @@ if ( $cfg['data-source'] == 'log'  ) {
 		# backup date and status are extracted from the flag folder or filename. Using Regex syntax.
 		# 
 		$backup_age = $now_time;
-		$date_pattern = '/(\d{2})\.(\d{2})\.(\d{4})_(\d{2})-(\d{2})-(\d{2})_(\w+?)$/';
+		$date_pattern = '/(\d{2})\.(\d{2})\.(\d{4})_(\d{2})-(\d{2})-(\d{2})_(\w+)/';
 		preg_match_all($date_pattern, $fname, $res, PREG_PATTERN_ORDER);
 
-		var_export($res);
-		
 		if ( isset( $res[6][0] ) ) {
 			$datetime = $res[3][0]."-". $res[2][0]."-". $res[1][0]." ". $res[4][0].":". $res[5][0].":". $res[6][0];
 			$file_time = strtotime($datetime);
-			echo $file_time;
 			$backup_age = $now_time - $file_time;
 		}
 				
