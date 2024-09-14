@@ -89,6 +89,7 @@ $i = 0;
 $n = 0;
 $full_log = "";
 $filename = "";
+$flag = "";
 
 
 # define timezone and set now_time timespamp
