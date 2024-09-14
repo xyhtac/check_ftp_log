@@ -272,7 +272,9 @@ if ( $cfg['data-source'] == 'log'  ) {
 		$date_pattern = '/(\d{2})\.(\d{2})\.(\d{4})_(\d{2})-(\d{2})-(\d{2})_(.+?)$/';
 		preg_match_all($date_pattern, $fname, $res, PREG_PATTERN_ORDER);
 
-		if ( sizeof($res) > 6 ) {
+		echo $res;
+		
+		if ( $res[6][0] ) {
 			$datetime = $res[3][0]."-". $res[2][0]."-". $res[1][0]." ". $res[4][0].":". $res[5][0].":". $res[6][0];
 			$file_time = strtotime($datetime);
 			$backup_age = $now_time - $file_time;
