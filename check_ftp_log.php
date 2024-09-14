@@ -269,6 +269,7 @@ if ( $cfg['data-source'] == 'log'  ) {
 		# here we define file or folder name pattern, e.g. ./FLAG_16.09.2022_22-13-05_OK
 		# backup date and status are extracted from the flag folder or filename. Using Regex syntax.
 		# 
+		$backup_age = $now_time;
 		$date_pattern = '/(\d{2})\.(\d{2})\.(\d{4})_(\d{2})-(\d{2})-(\d{2})_(\w+?)$/';
 		preg_match_all($date_pattern, $fname, $res, PREG_PATTERN_ORDER);
 
@@ -278,7 +279,7 @@ if ( $cfg['data-source'] == 'log'  ) {
 			$backup_age = $now_time - $file_time;
 		}
 				
-		if ( preg_match("/".$cfg['bak-file-pattern']."/",$fname) && $backup_age < $newest) { 
+		if ( preg_match("/".$cfg['bak-file-pattern']."/",$fname) && $backup_age < $newest && isset( $res[7][0] ) ) { 
 			$newest = $backup_age;
 			$filename = $fname;
 			$newesttime = $datetime;
