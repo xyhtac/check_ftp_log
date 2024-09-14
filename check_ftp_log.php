@@ -277,6 +277,7 @@ if ( $cfg['data-source'] == 'log'  ) {
 		if ( isset( $res[6][0] ) ) {
 			$datetime = $res[3][0]."-". $res[2][0]."-". $res[1][0]." ". $res[4][0].":". $res[5][0].":". $res[6][0];
 			$file_time = strtotime($datetime);
+			echo $file_time;
 			$backup_age = $now_time - $file_time;
 		}
 				
