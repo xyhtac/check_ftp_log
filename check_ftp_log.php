@@ -3,7 +3,7 @@
 # Icinga Plugin Script (Check Command). Check results of the ftp backup by reading and analysing ftp log files.
 # https://github.com/xyhtac/check_ftp_log/
 # Max.Fischer <dev@monologic.ru>
-# Tested on CentOS GNU/Linux 6.5 with Icinga r2.6.3-1
+# Tested with Debian GNU/Linux 12 (bookworm) with Icinga v2.14.6
 # 
 # supposed to be placed in nagios plugins directory, i.e.:
 # /usr/lib/nagios/plugins/check_ftp_log.php - CHMOD 755
